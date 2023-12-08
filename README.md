@@ -3,6 +3,7 @@
 This is the code from : 
 
 Detecting subtle transcriptomic perturbations induced by lncRNAs Knock-Down in single-cell CRISPRi screening using a new sparse supervised autoencoder neural network
+
 Marin Truchi, Caroline Lacoux, Cyprien Gille, Julien Fassy, Virginie Magnone, Rafael Lopez-Goncalvez, Cédric Girard-Riboulleau, Iris Manosalva-Pena, Marine Gautier-Isola, Kevin Lebrigand, Pascal Barbry, Salvatore Spicuglia, Georges Vassaux, Roger Rezzonico, Michel Barlaud, Bernard Mari
 bioRxiv 2023.07.11.548494; doi: https://doi.org/10.1101/2023.07.11.548494
 
