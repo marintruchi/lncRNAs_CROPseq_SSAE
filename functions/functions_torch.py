@@ -2365,6 +2365,7 @@ def ReadData(
                 col[0] = "Name"
             data_pd.columns = col
             feature_name = data_pd["Name"].values.astype(str)[1:]
+            
             label_name = np.unique(Y)
             patient_name = data_pd.columns[1:]
             # Do standardization
@@ -2375,7 +2376,7 @@ def ReadData(
             X2 = X[np.where(Y == label_name[1])[0], :]
 
             difference = np.mean(X1, axis=0) - np.mean(X2, axis=0)
-
+            
             RankFeature = RankFeature(difference, feature_name)
             X = X - np.mean(X, axis=0)
             if doScale:
