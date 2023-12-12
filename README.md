@@ -77,6 +77,6 @@ For each run, the SSAE produce 2 major outputs :
 ---
 ---
 
-2) An output count matrix (`[filename]_after_selection.csv` file within the `data` folder) containing only the raw expression profiles of gRNA-targeted cells classified as "perturbed" and an equivalent number of control cells, randomly selected. If the number of "perturbed" cells is sufficient (~100), this matrix of selected cells can be used as input for a second-turn SSAE run to extract a final list of selected features corresponding to the refined perturbation signature.
+2) An output count matrix (`[filename]_after_selection.csv` file within the `data` folder, containing only the raw expression profiles of gRNA-targeted cells classified as "perturbed" and an equivalent number of control cells, randomly selected. If the number of "perturbed" cells is sufficient (~100), this matrix of selected cells can be used as input for a second-turn SSAE run to extract a final list of selected features corresponding to the refined perturbation signature.
 
 
