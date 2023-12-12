@@ -2085,14 +2085,14 @@ def Data_Recon(
     res = pd.DataFrame(Lung)
     if doRecal:
         res.to_csv(
-            "{}Nice-Dijon-fusion_recal_{}.csv".format("datas/", str(run_model)),
+            "{}Nice-Dijon-fusion_recal_{}.csv".format("data/", str(run_model)),
             sep=";",
             index=0,
             header=0,
         )
     else:
         res.to_csv(
-            "{}Nice-Dijon-fusion_{}.csv".format("datas/", str(run_model)),
+            "{}Nice-Dijon-fusion_{}.csv".format("data/", str(run_model)),
             sep=";",
             index=0,
             header=0,
@@ -2307,7 +2307,7 @@ def ReadData(
     * csv has two format, one is data of facebook, another is TIRO format.
     
     Args:
-        file_name: string - file name, default directory is "datas/FAIR/"
+        file_name: string - file name, default directory is "data/FAIR/"
         
     Returns:
         X(m*n): numpy array - m samples and n features, normalized   
@@ -2331,7 +2331,7 @@ def ReadData(
             label_name = np.unique(Y)
         elif not TIRO_FORMAT:
             data_pd = pd.read_csv(
-                "datas/" + str(file_name), delimiter=",", header=None, dtype="unicode"
+                "data/" + str(file_name), delimiter=",", header=None, dtype="unicode"
             )
             index_root = data_pd[data_pd.iloc[:, -1] == "root"].index.tolist()
             data = data_pd.drop(index_root).values
@@ -2351,13 +2351,13 @@ def ReadData(
 
         elif TIRO_FORMAT:
             data_pd = pd.read_csv(
-                "datas/" + str(file_name),
+                "data/" + str(file_name),
                 delimiter=";",
                 decimal=",",
                 header=0,
                 encoding="ISO-8859-1",
             )
-            # data_pd = pd.read_csv('datas/FAIR/'+ str(file_name),delimiter=',', decimal=".", header=0, encoding = 'ISO-8859-1')
+            # data_pd = pd.read_csv('data/FAIR/'+ str(file_name),delimiter=',', decimal=".", header=0, encoding = 'ISO-8859-1')
             X = (data_pd.iloc[1:, 1:].values.astype(float)).T
             Y = data_pd.iloc[0, 1:].values.astype(float).astype(np.int64)
             col = data_pd.columns.to_list()
