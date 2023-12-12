@@ -11,12 +11,16 @@ bioRxiv 2023.07.11.548494; doi: https://doi.org/10.1101/2023.07.11.548494
 
 The original GitHub repository of the SSAE used in the manuscript is the property of [Michel Barlaud](https://github.com/MichelBarlaud/SAE-Supervised-Autoencoder-Omics/tree/main). The goal of this repository is to gather materials used for i) the preprocessing of CROP-seq data, ii) the detection of transcriptomic perturbation with the SSAE, iii) the figures of the manuscript. 
 
+---
+
 <figure>
   <img src="https://github.com/marintruchi/lncRNAs_CROPseq_SSAE/blob/main/SSAE_overview.jpg" alt="SSAE_overview"/>
   <figcaption>Two-step SSAE classification of perturbed cells among gRNA-targeted
 cells
 </figcaption>
 </figure>
+
+---
 
 ## **Repository Contents**
 |Folder | Description |
