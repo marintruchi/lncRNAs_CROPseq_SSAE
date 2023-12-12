@@ -11,7 +11,7 @@ When using this code , please cite
  Learning sparse deep neural networks using efficient structured projections on convex constraints for green ai. ICPR 2020 Milan Italy (2020)
 
 @INPROCEEDINGS{9412162,  
-               author={Barlaud, Michel and Guyard, Frédéric},  
+               author={Barlaud, Michel and Guyard, FrÃ©dÃ©ric},  
                booktitle={2020 25th International Conference on Pattern Recognition (ICPR)},   
                title={Learning sparse deep neural networks using efficient structured projections on convex constraints for green AI},  
                year={2021}, 
@@ -58,115 +58,111 @@ import functions.functions_torch as ft
 import functions.functions_network_pytorch as fnp
 from sklearn.metrics import precision_recall_fscore_support
 import seaborn as sns
+from random import sample
+
 
 
 #################################
 
-if __name__ == "__main__":
 
-    # # ------------ Parameters ---------
 
-    ####### Set of parameters : #######
-    # Lung : ETA = 200
-    # Brain : ETA = 50
-    # Breast : ETA = 100
+# # ------------ Parameters ---------
+####### Set of parameters : #######
+# Set seed
+Seed = [2]
+ETA = 25  # Controls feature selection (projection) 
 
-    # Set seed
-    #Seed = [1]
-    Seed = [2,3,4]
-    ETA = 25  # Controls feature selection (projection)
+# Set device (Gpu or cpu)
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    # Set device (Gpu or cpu)
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+nfold = 4
+N_EPOCHS = 30
+N_EPOCHS_MASKGRAD = 30  # number of epochs for training masked gradient
+LR = 0.0005  # Learning rate
+BATCH_SIZE = 8  # Optimize the trade off between accuracy and computational time
+LOSS_LAMBDA = 0.001  # Total loss =Î» * loss_autoencoder +  loss_classification
+bW = 0.2  # Kernel size for distribution plots
 
-    nfold = 4
-    N_EPOCHS = 30
-    N_EPOCHS_MASKGRAD = 30  # number of epochs for training masked gradient
-    LR = 0.0005  # Learning rate
-    BATCH_SIZE = 8  # Optimize the trade off between accuracy and computational time
-    LOSS_LAMBDA = 0.001  # Total loss =λ * loss_autoencoder +  loss_classification
-    bW = 0.2  # Kernel size for distribution plots
+# Scaling
+doScale = False
+# log transform
+doLog = True
 
-    # Scaling
-    doScale = False
-    # log transform
-    doLog = True
+# loss function for reconstruction
+criterion_reconstruction = nn.SmoothL1Loss(reduction="sum")  # SmoothL1Loss
 
-    # loss function for reconstruction
-    criterion_reconstruction = nn.SmoothL1Loss(reduction="sum")  # SmoothL1Loss
+# Loss function for classification
+criterion_classification = nn.CrossEntropyLoss(reduction="sum")
 
-    # Loss function for classification
-    criterion_classification = nn.CrossEntropyLoss(reduction="sum")
+TIRO_FORMAT = True  
+file_name = "Nx_HIF1A.nogRNA.csv"
 
-    TIRO_FORMAT = True  
-    file_name = "Hx24h_LUCAT1.nogRNA.csv"
-   
-    # Choose Net
-    # net_name = 'LeNet'
-    net_name = "netBio"
-    n_hidden = 96  # amount of neurons on netbio's hidden layer
+# Choose Net
+# net_name = 'LeNet'
+net_name = "netBio"
+n_hidden = 96  # amount of neurons on netbio's hidden layer
 
-    # Do pca or t-SNE
-    Do_pca = True
-    Do_tSNE = True
-    run_model = "No_proj"  # default model run
-    # Do projection at the middle layer or not
-    DO_PROJ_middle = False
-    # Do projection on the decoder part or not
-    DO_PROJ_DECODER = True
+# Do pca or t-SNE
+Do_pca = True
+Do_tSNE = True
+run_model = "No_proj"  # default model run
+# Do projection at the middle layer or not
+DO_PROJ_middle = False
+# Do projection on the decoder part or not
+DO_PROJ_DECODER = True
 
-    # Do projection (True)  or not (False)
-    GRADIENT_MASK = True
-    if GRADIENT_MASK:
+# Do projection (True)  or not (False)
+GRADIENT_MASK = True
+if GRADIENT_MASK:
         run_model = "ProjectionLastEpoch"
 
     # Choose projection function
-    if not GRADIENT_MASK:
+if not GRADIENT_MASK:
         TYPE_PROJ = "No_proj"
         TYPE_PROJ_NAME = "No_proj"
-    else:
+else:
         # TYPE_PROJ = ft.proj_l1ball    # projection l1
         TYPE_PROJ = ft.proj_l11ball  # original projection l11 (col-wise zeros)
         # TYPE_PROJ = ft.proj_l21ball   # projection l21
         TYPE_PROJ_NAME = TYPE_PROJ.__name__
 
-    AXIS = 0  #  for PGL21
+AXIS = 0  #  for PGL21
 
-    # Top genes params
-    DoTopGenes = True  # Compute feature rankings
+# Top genes params
+DoTopGenes = True  # Compute feature rankings
 
-    # Save Results or not
-    SAVE_FILE = True
-    # Output Path
-    outputPath = (
+# Save Results or not
+SAVE_FILE = True
+# Output Path
+outputPath = (
         "results_stat"
         + ((not DO_PROJ_DECODER) * "_halfproj")
         + "/"
         + file_name.split(".")[0]
         + "/"
     )
-    if not os.path.exists(outputPath):  # make the directory if it does not exist
+if not os.path.exists(outputPath):  # make the directory if it does not exist
         os.makedirs(outputPath)
 
     # ------------ Main routine ---------
     # Load data
-    X, Y, feature_name, label_name, patient_name, LFC_Rank = ft.ReadData(
+X, Y, feature_name, label_name, patient_name, LFC_Rank = ft.ReadData(
         file_name, TIRO_FORMAT=TIRO_FORMAT, doScale=doScale, doLog=doLog
     )
 
-    feature_len = len(feature_name)
-    class_len = len(label_name)
-    print(f"Number of features: {feature_len}, Number of classes: {class_len}")
+feature_len = len(feature_name)
+class_len = len(label_name)
+print(f"Number of features: {feature_len}, Number of classes: {class_len}")
 
-    # matrices to store accuracies
-    accuracy_train = np.zeros((nfold * len(Seed), class_len + 1))
-    accuracy_test = np.zeros((nfold * len(Seed), class_len + 1))
-    # matrices to store metrics
-    data_train = np.zeros((nfold * len(Seed), 7))
-    data_test = np.zeros((nfold * len(Seed), 7))
-    correct_prediction = []
-    s = 0
-    for SEED in Seed:
+# matrices to store accuracies
+accuracy_train = np.zeros((nfold * len(Seed), class_len + 1))
+accuracy_test = np.zeros((nfold * len(Seed), class_len + 1))
+# matrices to store metrics
+data_train = np.zeros((nfold * len(Seed), 7))
+data_test = np.zeros((nfold * len(Seed), 7))
+correct_prediction = []
+s = 0
+for SEED in Seed:
 
         np.random.seed(SEED)
         torch.manual_seed(SEED)
@@ -179,7 +175,7 @@ if __name__ == "__main__":
             print(
                 "Len of train set: {}, Len of test set:: {}".format(train_len, test_len)
             )
-            print("----------- Début iteration ", i, "----------------")
+            print("----------- DÃ©but iteration ", i, "----------------")
             # Define the SEED to fix the initial parameters
             np.random.seed(SEED)
             torch.manual_seed(SEED)
@@ -379,7 +375,7 @@ if __name__ == "__main__":
                 Ytest, data_encoder_test[:, :-1].max(1)[1].numpy(), average="macro"
             )[:-1]
 
-            # Recupération des labels corects
+            # RecupÃ©ration des labels corects
             correct_prediction += correct_pred
 
             # Get Top Genes of each class
@@ -520,44 +516,47 @@ if __name__ == "__main__":
 
         s += 1
 
-        # accuracies
-    df_accTrain, df_acctest = ft.packClassResult(
+# accuracies
+df_accTrain, df_acctest = ft.packClassResult(
         accuracy_train, accuracy_test, nfold * len(Seed), label_name
     )
-    print("\nAccuracy Train")
-    print(df_accTrain)
-    print("\nAccuracy Test")
-    print(df_acctest)
+print("\nAccuracy Train")
+print(df_accTrain)
+print("\nAccuracy Test")
+print(df_acctest)
 
-    # metrics
-    df_metricsTrain, df_metricsTest = ft.packMetricsResult(
+# metrics
+df_metricsTrain, df_metricsTest = ft.packMetricsResult(
         data_train, data_test, nfold * len(Seed)
     )
 
-    # separation of the metrics in different dataframes
-    clustering_metrics = ["Silhouette", "ARI", "AMI"]
-    classification_metrics = ["AUC", "Precision", "Recall", "F1 score"]
-    df_metricsTrain_clustering = df_metricsTrain[clustering_metrics]
-    df_metricsTrain_classif = df_metricsTrain[classification_metrics]
-    df_metricsTest_clustering = df_metricsTest[clustering_metrics]
-    df_metricsTest_classif = df_metricsTest[classification_metrics]
+# separation of the metrics in different dataframes
+clustering_metrics = ["Silhouette", "ARI", "AMI"]
+classification_metrics = ["AUC", "Precision", "Recall", "F1 score"]
+df_metricsTrain_clustering = df_metricsTrain[clustering_metrics]
+df_metricsTrain_classif = df_metricsTrain[classification_metrics]
+df_metricsTest_clustering = df_metricsTest[clustering_metrics]
+df_metricsTest_classif = df_metricsTest[classification_metrics]
 
-    print("\nMetrics Train")
-    # print(df_metricsTrain_clustering)
-    print(df_metricsTrain_classif)
-    print("\nMetrics Test")
-    # print(df_metricsTest_clustering)
-    print(df_metricsTest_classif)
+print("\nMetrics Train")
+# print(df_metricsTrain_clustering)
+print(df_metricsTrain_classif)
+print("\nMetrics Test")
+# print(df_metricsTest_clustering)
+print(df_metricsTest_classif)
 
-    # Reconstruction by using the centers in laten space and datas after interpellation
-    center_mean, center_distance = ft.Reconstruction(0.2, data_encoder, net, class_len)
+df_acctest.to_csv("results_stat/"+file_name.partition('.')[0]+'/accuracy_test.csv',index =True)
+df_metricsTest_classif.to_csv("results_stat/"+file_name.partition('.')[0]+'/metrics_test.csv',index =True)
+
+# Reconstruction by using the centers in laten space and data after interpellation
+center_mean, center_distance = ft.Reconstruction(0.2, data_encoder, net, class_len)
 
     # Do pca,tSNE for encoder data
     #if Do_pca and Do_tSNE:
     #    tit = "Latent Space"
     #    ft.ShowPcaTsne(X, Y, data_encoder, center_distance, class_len, tit)
 
-    if DoTopGenes:
+if DoTopGenes:
         df = pd.read_csv(
             "{}{}_topGenes_Mean_{}_{}.csv".format(
                 outputPath, str(TYPE_PROJ_NAME), method, str(nb_samples)
@@ -588,76 +587,61 @@ if __name__ == "__main__":
             index=0,
         )
 
-plt.figure()
-plt.title("Kernel Density")
-plt.plot([0.5, 0.5], [0, 3])
-lab = 0
-for col in softmax.iloc[:, 2:]:
-  distrib = softmax[col].where(softmax["Labels"] == lab).dropna()
-if lab == 0:
-  sns.kdeplot(
-    1 - distrib, bw=bW, shade=True, color="tab:blue", label="Proba class 0",
-  )
-# sns.kdeplot(1 - distrib, bw=0.1, fill=True, shade="True")
-else:
-  sns.kdeplot(
-    distrib, bw=bW, shade=True, color="tab:orange", label="Proba class 1"
-  )
-# sns.kdeplot(distrib, bw=0.1, fill=True, shade="True")
-
-lab += 1
-plt.legend(loc="upper left")
-plt.xlabel("")
-plt.ylabel("")
-plt.show()
-
-spasity_percentage_entry = {}
-for keys in spasity_w_entry.keys():
-  spasity_percentage_entry[keys] = spasity_w_entry[keys] * 100
-print("spasity % of all layers entry \n", spasity_percentage_entry)
-print("-----------------------")
-weights, spasity_w = fnp.weights_and_sparsity(net.encoder)
-spasity_percentage = {}
-for keys in spasity_w.keys():
-  spasity_percentage[keys] = spasity_w[keys] * 100
-print("spasity % of all layers \n", spasity_percentage)
-print("-----------------------")
-
-weights_decoder, spasity_w_decoder = fnp.weights_and_sparsity(net.decoder)
-mat_in = net.state_dict()["encoder.0.weight"]
-
-mat_col_sparsity = ft.sparsity_col(mat_in, device=device)
-print(" Colonnes sparsity sur la matrice d'entrée: \n", mat_col_sparsity)
-mat_in_sparsity = ft.sparsity_line(mat_in, device=device)
-print(" ligne sparsity sur la matrice d'entrée: \n", mat_in_sparsity)
-layer_list = [x for x in weights.values()]
-layer_list_decoder = [x for x in weights_decoder.values()]
-titile_list = [x for x in spasity_w.keys()]
-ft.show_img(layer_list, layer_list_decoder, file_name)
-
-# Loss figure
-if os.path.exists(file_name.split(".")[0] + "_Loss_No_proj.npy") and os.path.exists(
-  file_name.split(".")[0] + "_Loss_MaskGrad.npy"
-):
-  loss_no_proj = np.load(file_name.split(".")[0] + "_Loss_No_proj.npy")
-loss_with_proj = np.load(file_name.split(".")[0] + "_Loss_MaskGrad.npy")
-plt.figure()
-plt.title(file_name.split(".")[0] + " Loss")
-plt.xlabel("Epoch")
-plt.ylabel("TotalLoss")
-plt.plot(loss_no_proj, label="No projection")
-plt.plot(loss_with_proj, label="With projection ")
-plt.legend()
-plt.show()
-if SAVE_FILE:
-  df_acctest.to_csv(
-    "{}{}_acctest.csv".format(outputPath, str(TYPE_PROJ_NAME)), sep=";"
-  )
-df_metricsTest_classif.to_csv(
-  "{}{}_auctest.csv".format(outputPath, str(TYPE_PROJ_NAME)), sep=";"
-)
-
-print("Save topGenes results to: ' {} ' ".format(outputPath))
 
 
-# %%
+
+### FUNCTION TO SELECT THE MOST PERTURBED CELLS AMONG THE gRNA-TARGETED ONES
+def select_samples(Thp, df):
+    
+    Ntarget= df[(df["Labels"]==1)]
+    Np = df[ (df["Labels"]==1) & (df["Proba class 1"]>Thp)]
+    NNp = df[ (df["Labels"]==1) & (df["Proba class 1"]<Thp)]
+    NNegative = df[(df["Labels"]==0)]
+    
+    # DÃ©finition du nouveau Thc
+    
+    taille_Np = len(Np)
+    if taille_Np > len(NNegative) :
+            taille_Np = len(NNegative)
+    new_thc = sample(list(NNegative.index), taille_Np)
+    new_thc = np.sort(new_thc)
+    not_thc = []
+    for i in list(NNegative.index):
+        if i not in new_thc :
+            not_thc.append(i)   
+    not_thc = np.sort(not_thc)
+    res ={"Ntarget":[len(Ntarget)],"Np":[len(Np)],"NNp":len(NNp),"NNegative":len(NNegative),"NNegative_R":len(new_thc)}
+    df_res = pd.DataFrame(res, columns=["Ntarget","Np","NNp","NNegative","NNegative_R"])
+    
+    index_name = not_thc
+    df.drop(index_name,inplace =True)
+    index_name2 = df[ (df["Labels"]==1) & (df["Proba class 1"]<=Thp)].index
+    df.drop(index_name2,inplace =True)
+    
+    return df_res,df
+
+## Score cutoff to select perturbed cells
+Thp = 0.5
+
+inputPath = "results_stat/"+file_name.partition('.')[0]+"/Labelspred_softmax.csv"
+dataPath = "data/" + file_name
+df = pd.read_csv(inputPath, sep=";")
+df_ini= df.copy()
+data_init = pd.read_csv(dataPath, header =None, sep=";",low_memory=False)
+data_init2= data_init.copy()
+
+### Selection results
+res,df2 = select_samples(Thp, df)
+print(res)
+res.to_csv("results_stat/"+file_name.partition('.')[0]+'/SSAE_selection.csv',index =False)
+
+### MISE A JOUR DE LA BASE DE DONNEES
+df_name = df["Name"]
+remove_index =[]
+for i in range(1,data_init.shape[1]):
+    if data_init[i][0] not in df_name.tolist(): 
+        remove_index.append(i)
+        
+update = data_init.drop(columns=remove_index)
+update.to_csv('data/'+file_name.partition('.')[0]+'_after_selection.csv',index =False,header = False, sep=";")
+
