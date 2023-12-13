@@ -611,7 +611,7 @@ def select_samples(Thp, df):
             not_thc.append(i)   
     not_thc = np.sort(not_thc)
     res ={"Ntarget":[len(Ntarget)],"Np":[len(Np)],"NNp":len(NNp),"NNegative":len(NNegative),"NNegative_R":len(new_thc)}
-    df_res = pd.DataFrame(res, columns=["Ntarget","Np","NNp","NNegative","NNegative_R"])
+    df_res = pd.DataFrame(res, columns=["Ntarget","Np","NNp","NNegative","NNp"])
     
     index_name = not_thc
     df.drop(index_name,inplace =True)
@@ -635,7 +635,7 @@ res,df2 = select_samples(Thp, df)
 print(res)
 res.to_csv("results_stat/"+file_name.partition('.')[0]+'/SSAE_selection.csv',index =False)
 
-### MISE A JOUR DE LA BASE DE DONNEES
+### Update the data matrix with only Np and NNp
 df_name = df["Name"]
 remove_index =[]
 for i in range(1,data_init.shape[1]):
