@@ -1,3 +1,7 @@
+# Paper : Detecting subtle transcriptomic perturbations induced by lncRNAs Knock-Down in single-cell CRISPRi screening using a new sparse supervised autoencoder neural network
+# Code : R script to load, manipulate and prepare the count matrices for the SSAE
+# Author : Marin Truchi
+
 #----------------------------------------------------------------#
 #------------- Load required packages and functions -------------#
 #----------------------------------------------------------------#
@@ -154,14 +158,6 @@ ggplot(metadata, aes(x = library, y = percentage, fill = HTO_classification)) +
         legend.title = element_text(size = 14))
 
 
-
-##Processing gRNA librairies with CITE-seq Count
-# CITE-seq-Count -R1 ~/FASTQ/Crop_1_S3_L001_R1_001.fastq.gz -R2 ~/FASTQ/Crop_1_S3_L001_R2_001.fastq.gz -t ~/gRNA_sequences_CROPseq2.csv -cbf 1 -cbl 16 -umif 17 -umil 28 -trim 23 -cells 10000 -wl "/home/truchi/CRISPRi_2/barcodes_lib1.tsv" -o ~/gRNA_counts/Lib1_L001/
-# CITE-seq-Count -R1 ~/FASTQ/Crop_1_S3_L002_R1_001.fastq.gz -R2 ~/FASTQ/Crop_1_S3_L002_R2_001.fastq.gz -t ~/gRNA_sequences_CROPseq2.csv -cbf 1 -cbl 16 -umif 17 -umil 28 -trim 23 -cells 10000 -wl "/home/truchi/CRISPRi_2/barcodes_lib1.tsv" -o ~/gRNA_counts/Lib1_L002/
-# CITE-seq-Count -R1 ~/FASTQ/Crop_2_S4_L001_R1_001.fastq.gz -R2 ~/FASTQ/Crop_2_S4_L001_R2_001.fastq.gz -t ~/gRNA_sequences_CROPseq2.csv -cbf 1 -cbl 16 -umif 17 -umil 28 -trim 23 -cells 10000 -wl "/home/truchi/CRISPRi_2/barcodes_lib2.tsv" -o ~/gRNA_counts/Lib2_L001/
-# CITE-seq-Count -R1 ~/FASTQ/Crop_2_S4_L002_R1_001.fastq.gz -R2 ~/FASTQ/Crop_2_S4_L002_R2_001.fastq.gz -t ~/gRNA_sequences_CROPseq2.csv -cbf 1 -cbl 16 -umif 17 -umil 28 -trim 23 -cells 10000 -wl "/home/truchi/CRISPRi_2/barcodes_lib2.tsv" -o ~/gRNA_counts/Lib2_L002/
-
-
 ### Load gRNA raw count matrix (4 parts)
 gRNA.11 <- Read10X("~/gRNA_Lib1_L001_processed/", gene.column=1)
 colnames(gRNA.11) <- paste0("Lib1.",colnames(gRNA.11))
@@ -262,7 +258,6 @@ pheatmap(a,cluster_rows = F,cluster_cols = F,angle_col = 90,fontsize = 8)
 #Select HTO's Negative cells for further assignation method
 Idents(hashing) <- "HTO_classification.global"
 Negative <- subset(hashing,idents="Negative")
-# saveRDS(Negative,"CRISPRi2_HTOsNeg.rds")
 
 #Keep HTO's Singlet
 hashing <- subset(hashing,idents="Singlet")
@@ -336,13 +331,11 @@ DefaultAssay(hashing) <- "RNA"
 VlnPlot(hashing,  features = c("nCount_RNA"),group.by = "gRNA_classification",cols = gRNA.colors,pt.size = 0,same.y.lims=F,ncol = 1)+NoLegend() +labs(y = "nCount_RNA")+FontSize(x.text = 8,y.text = 8,main = 0)
 VlnPlot(hashing,  features = c("nFeature_RNA"),group.by = "gRNA_classification",cols = gRNA.colors,pt.size = 0,same.y.lims=F,ncol = 1)+NoLegend()+labs(y = "nFeature_RNA")+FontSize(x.text = 8,y.text = 8,main = 0)
 
-#saveRDS(hashing,"CRISPRi2_allgRNAs.rds")
 
 #-------------------------------------------------------------------------------------------------#
 #--------------------- Remove low-UMIs cells with an assigned HTO and gRNA -----------------------#
 #-------------------------------------------------------------------------------------------------#
 
-#hashing <- readRDS("CRISPRi2_allgRNAs.rds")
 hashing <- hashing %>% subset(idents=c("Doublet","Negative"),invert=T)
 hashing$target <- gsub("-.*","",hashing$gRNA_classification)
 
@@ -507,7 +500,9 @@ FeaturePlot(hashing,features = c("HIF1A"),ncol = 1,cols = colorRampPalette(rev(b
 DefaultAssay(hashing ) <- "RNA"
 hashing[["SCT"]] <- NULL
 hashing$gRNA_classification <- factor(hashing$gRNA_classification,levels= c("HIF1A-sg1", "HIF1A-sg2","HIF2-sg5","LINC00152-sg3","LUCAT1-sg3","LUCAT1-sg5","MALAT1-sg1","NEAT1-sg2","NEAT1-sg6","SNHG12-sg1","SNHG12-sg3","SNHG21-sg5","Neg-sg1","Neg-sg2"))
-# saveRDS(hashing,file = "CRISPRi2_filtered_gRNAs.rds")
+
+## Save the processed seurat object
+saveRDS(hashing,file = "processed_seurat_obj.rds")
 
 
 gRNA.colors <- c("HIF1A-sg1"="#b53333", "HIF1A-sg2" ="#e36262","HIF2-sg5"="#eb8831","LINC00152-sg3"="#b88cb5","LUCAT1-sg3" ="#85132f","LUCAT1-sg5"="#bd4462",  
@@ -518,7 +513,7 @@ HTO.colors <- c("Normoxie"="#3a8bc9","Hypoxie-3H"="#f2c0b8","Hypoxie-6H"="#de5b5
 target.colors <- c("HIF1A" ="#e36262","HIF2"="#eb8831","LINC00152"="#b88cb5","LUCAT1" ="#85132f", "MALAT1"="#1dbf9f","NEAT1"="#c9bf24","Neg"="#c3ccf7","SNHG12" ="#42a823","SNHG21"="#2459c9")
 targets <- c("HIF1A","EPAS1","CYTOR","LUCAT1","MALAT1","NEAT1","SNHG12","SNHG21")
 
-# hashing <- readRDS(file = "CRISPRi2_filtered_gRNAs.rds")
+# hashing <- readRDS(file = "processed_seurat_obj.rds")
 
 ggarrange(VlnPlot(hashing,group.by = "HTO_classification" ,features = "HIF1A",pt.size = 0,cols = HTO.colors)+FontSize(x.text=8, y.text=9,x.title=0, y.title=0),
           VlnPlot(hashing,group.by = "HTO_classification" ,features = "EPAS1",pt.size = 0,cols = HTO.colors,ncol = 1)+FontSize(x.text=8, y.text=9,x.title=0, y.title=0),
@@ -558,7 +553,7 @@ dev.off()
 #-------------------------- Prepare input data for autoencoder without gRNA counts ---------------------------#
 #-------------------------------------------------------------------------------------------------------------#
 
-hashing <- readRDS(file = "/data/truchi_data/Rdata_objects/CRISPRi2_filtered_gRNAs.rds")
+hashing <- readRDS(file = "~/processed_seurat_obj.rds")
 hashing$barcode <- colnames(hashing)
 Idents(hashing) <- "HTO_classification"
 hashing_Hx3h <- subset(hashing,idents="Hypoxie-3H")
@@ -595,7 +590,7 @@ for (i in 1:length(targets)) {
   df$Label <- ifelse(df$Label=="Neg",1,2)
   df <- rbind(df%>% t() %>% as.data.frame(),dataframe) 
   print(paste("Writing",targets[i],"matrix in Normoxia",sep = " "))
-  write.table(df,paste0("~/datas/Nx_",targets[i],".nogRNA.csv"),sep = ";",col.names = F,quote = F)
+  write.table(df,paste0("~/data/Nx_",targets[i],".nogRNA.csv"),sep = ";",col.names = F,quote = F)
   
   #Hypoxie 3h
   Idents(hashing_Hx3h) <- "target"
@@ -617,7 +612,7 @@ for (i in 1:length(targets)) {
   df$Label <- ifelse(df$Label=="Neg",1,2)
   df <- rbind(df%>% t() %>% as.data.frame(),dataframe) 
   print(paste("Writing",targets[i],"matrix in Hypoxia 3h",sep = " "))
-  write.table(df,paste0("~/datas/Hx3h_",targets[i],".nogRNA.csv"),sep = ";",col.names = F,quote = F)
+  write.table(df,paste0("~/data/Hx3h_",targets[i],".nogRNA.csv"),sep = ";",col.names = F,quote = F)
   
   #Hypoxie 6h
   Idents(hashing_Hx6h) <- "target"
@@ -639,7 +634,7 @@ for (i in 1:length(targets)) {
   df$Label <- ifelse(df$Label=="Neg",1,2)
   df <- rbind(df%>% t() %>% as.data.frame(),dataframe) 
   print(paste("Writing",targets[i],"matrix in Hypoxia 6h",sep = " "))
-  write.table(df,paste0("~/datas/Hx6h_",targets[i],".nogRNA.csv"),sep = ";",col.names = F,quote = F)
+  write.table(df,paste0("~/data/Hx6h_",targets[i],".nogRNA.csv"),sep = ";",col.names = F,quote = F)
   
   #Hypoxie 24h
   Idents(hashing_Hx24h) <- "target"
@@ -661,16 +656,5 @@ for (i in 1:length(targets)) {
   df$Label <- ifelse(df$Label=="Neg",1,2)
   df <- rbind(df%>% t() %>% as.data.frame(),dataframe) 
   print(paste("Writing",targets[i],"matrix in Hypoxia 24h",sep = " "))
-  write.table(df,paste0("~/datas/Hx24h_",targets[i],".nogRNA.csv"),sep = ";",col.names = F,quote = F)
+  write.table(df,paste0("~/data/Hx24h_",targets[i],".nogRNA.csv"),sep = ";",col.names = F,quote = F)
 }
-
-# Save the list of barcode to link the SSAE outputs with the seurat object
-names(list.barcode_Nx) <- paste0(targets,"_Nx")
-names(list.barcode_Hx3h) <- paste0(targets,"_Hx3h")
-names(list.barcode_Hx6h) <- paste0(targets,"_Hx6h")
-names(list.barcode_Hx24h) <- paste0(targets,"_Hx24h")
-list.barcode <- Reduce(append,list(list.barcode_Nx,list.barcode_Hx3h,list.barcode_Hx6h,list.barcode_Hx24h))
-saveRDS(list.barcode,file = "~/list_barcode.rds")
-
-VlnPlot(hashing_Hx24h, features = c("PEX1"),group.by = "target",pt.size = 0,ncol = 1)+NoLegend()+
-  geom_jitter(shape=10,size=0.1, position=position_jitterdodge(seed = 1, dodge.width = 0.9,jitter.width=3)) +labs(y = "EPAS1 expression")
