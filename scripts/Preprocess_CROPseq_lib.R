@@ -552,3 +552,125 @@ Breaks = c(seq(min(data), 0, length.out=ceiling(paletteLength/2) + 1),
 pdf("heatmap.pdf",width = 10,height = 3)
 print(pheatmap(data,annotation = annotation,color = myColor,cluster_rows = F,gaps_col = c(4,8,12,16,20,24,28,32,36,40,44,48,52),cluster_cols = F,treeheight_col = 0,show_colnames=F,breaks = Breaks,annotation_legend = 0,annotation_colors = list("gRNAs"=gRNA.colors,"condition"=HTO.colors)))
 dev.off()
+
+
+#-------------------------------------------------------------------------------------------------------------#
+#-------------------------- Prepare input data for autoencoder without gRNA counts ---------------------------#
+#-------------------------------------------------------------------------------------------------------------#
+
+hashing <- readRDS(file = "/data/truchi_data/Rdata_objects/CRISPRi2_filtered_gRNAs.rds")
+hashing$barcode <- colnames(hashing)
+Idents(hashing) <- "HTO_classification"
+hashing_Hx3h <- subset(hashing,idents="Hypoxie-3H")
+hashing_Hx6h <- subset(hashing,idents="Hypoxie-6H")
+hashing_Hx24h <- subset(hashing,idents="Hypoxie-24h")
+hashing_Nx <- subset(hashing,idents="Normoxie") 
+gRNA.colors <- c("HIF1A-sg1"="#b53333", "HIF1A-sg2" ="#e36262","HIF2-sg5"="#eb8831","LINC00152-sg3"="#b88cb5","LUCAT1-sg3" ="#85132f","LUCAT1-sg5"="#bd4462",  
+                 "MALAT1-sg1"="#1dbf9f","NEAT1-sg2"="#c9bf24","NEAT1-sg6"="#dbd470","Neg-sg1"="#c3ccf7","Neg-sg2"="#c3def7","SNHG12-sg1" ="#42a823","SNHG12-sg3"="#69bd4f","SNHG21-sg5"="#2459c9")
+target.colors <- c("HIF1A" ="#e36262","HIF2"="#eb8831","LINC00152"="#b88cb5","LUCAT1" ="#85132f", "MALAT1"="#1dbf9f","NEAT1"="#c9bf24","Neg"="#c3ccf7","SNHG12" ="#42a823","SNHG21"="#2459c9")
+
+
+targets <- c("HIF1A","HIF2","LINC00152","LUCAT1","MALAT1","NEAT1","SNHG12","SNHG21")
+list.gRNA <- list("HIF1A"=c("HIF1A-sg1", "HIF1A-sg2"),"HIF2"=c("HIF2-sg5"),"LINC00152"=c("LINC00152-sg3"),"LUCAT1"=c("LUCAT1-sg3" ,"LUCAT1-sg5"),"MALAT1"=c("MALAT1-sg1"),"NEAT1"=c("NEAT1-sg2","NEAT1-sg6"),"SNHG12"=c("SNHG12-sg1","SNHG12-sg3"),"SNHG21"=c("SNHG21-sg5"))
+list.barcode_Nx<- list.barcode_Hx3h <- list.barcode_Hx6h <- list.barcode_Hx24h <- list()
+
+for (i in 1:length(targets)) {
+  #Normoxie
+  Idents(hashing_Nx) <- "target"
+  DefaultAssay(hashing_Nx) <- "RNA_raw"
+  sub <- subset(hashing_Nx,idents=c("Neg", targets[i]))
+  data_raw <- GetAssayData(sub)
+  
+  cells <- sub@meta.data %>% dplyr::select(barcode,target) %>% dplyr::rename(Label=target)  %>% as.data.table()
+  cells[ , Name := 1:.N , by = c("Label") ]
+  cells$Label <- factor(cells$Label,levels = c("Neg", targets[i]))
+  cells<- cells[order(cells$Label),]
+  list.barcode_Nx <- list.append(list.barcode_Nx,cells)
+  genes <- c(names(sort(rowSums(data_raw),decreasing = TRUE)[1:10000]))
+  data_raw <- rbind(data_raw)
+  
+  dataframe <- data_raw[match(genes,rownames(data_raw)),match(cells$barcode,colnames(data_raw))] %>% as.matrix() %>% as.data.frame()
+  cells$Name <- cells$barcode
+  df <- cells %>% column_to_rownames("barcode") %>% dplyr::select(Name,Label) 
+  df$Label <- ifelse(df$Label=="Neg",1,2)
+  df <- rbind(df%>% t() %>% as.data.frame(),dataframe) 
+  print(paste("Writing",targets[i],"matrix in Normoxia",sep = " "))
+  write.table(df,paste0("~/datas/Nx_",targets[i],".nogRNA.csv"),sep = ";",col.names = F,quote = F)
+  
+  #Hypoxie 3h
+  Idents(hashing_Hx3h) <- "target"
+  DefaultAssay(hashing_Hx3h) <- "RNA_raw"
+  sub <- subset(hashing_Hx3h,idents=c("Neg", targets[i]))
+  data_raw <- GetAssayData(sub)
+  
+  cells <- sub@meta.data %>% dplyr::select(barcode,target) %>% dplyr::rename(Label=target)  %>% as.data.table()
+  cells[ , Name := 1:.N , by = c("Label") ]
+  cells$Label <- factor(cells$Label,levels = c("Neg", targets[i]))
+  cells<- cells[order(cells$Label),]
+  list.barcode_Hx3h <- list.append(list.barcode_Hx3h,cells)
+  genes <- c(names(sort(rowSums(data_raw),decreasing = TRUE)[1:10000]))
+  data_raw <- rbind(data_raw)
+  
+  dataframe <- data_raw[match(genes,rownames(data_raw)),match(cells$barcode,colnames(data_raw))] %>% as.matrix() %>% as.data.frame()
+  cells$Name <- cells$barcode
+  df <- cells %>% column_to_rownames("barcode") %>% dplyr::select(Name,Label) 
+  df$Label <- ifelse(df$Label=="Neg",1,2)
+  df <- rbind(df%>% t() %>% as.data.frame(),dataframe) 
+  print(paste("Writing",targets[i],"matrix in Hypoxia 3h",sep = " "))
+  write.table(df,paste0("~/datas/Hx3h_",targets[i],".nogRNA.csv"),sep = ";",col.names = F,quote = F)
+  
+  #Hypoxie 6h
+  Idents(hashing_Hx6h) <- "target"
+  DefaultAssay(hashing_Hx6h) <- "RNA_raw"
+  sub <- subset(hashing_Hx6h,idents=c("Neg", targets[i]))
+  data_raw <- GetAssayData(sub)
+  
+  cells <- sub@meta.data %>% dplyr::select(barcode,target) %>% dplyr::rename(Label=target)  %>% as.data.table()
+  cells[ , Name := 1:.N , by = c("Label") ]
+  cells$Label <- factor(cells$Label,levels = c("Neg", targets[i]))
+  cells<- cells[order(cells$Label),]
+  list.barcode_Hx6h <- list.append(list.barcode_Hx6h,cells)
+  genes <- c(names(sort(rowSums(data_raw),decreasing = TRUE)[1:10000]))
+  data_raw <- rbind(data_raw)
+  
+  dataframe <- data_raw[match(genes,rownames(data_raw)),match(cells$barcode,colnames(data_raw))] %>% as.matrix() %>% as.data.frame()
+  cells$Name <- cells$barcode
+  df <- cells %>% column_to_rownames("barcode") %>% dplyr::select(Name,Label) 
+  df$Label <- ifelse(df$Label=="Neg",1,2)
+  df <- rbind(df%>% t() %>% as.data.frame(),dataframe) 
+  print(paste("Writing",targets[i],"matrix in Hypoxia 6h",sep = " "))
+  write.table(df,paste0("~/datas/Hx6h_",targets[i],".nogRNA.csv"),sep = ";",col.names = F,quote = F)
+  
+  #Hypoxie 24h
+  Idents(hashing_Hx24h) <- "target"
+  DefaultAssay(hashing_Hx24h) <- "RNA_raw"
+  sub <- subset(hashing_Hx24h,idents=c("Neg", targets[i]))
+  data_raw <- GetAssayData(sub)
+  
+  cells <- sub@meta.data %>% dplyr::select(barcode,target) %>% dplyr::rename(Label=target)  %>% as.data.table()
+  cells[ , Name := 1:.N , by = c("Label") ]
+  cells$Label <- factor(cells$Label,levels = c("Neg", targets[i]))
+  cells<- cells[order(cells$Label),]
+  list.barcode_Hx24h <- list.append(list.barcode_Hx24h,cells)
+  genes <- c(names(sort(rowSums(data_raw),decreasing = TRUE)[1:10000]))
+  data_raw <- rbind(data_raw)
+  
+  dataframe <- data_raw[match(genes,rownames(data_raw)),match(cells$barcode,colnames(data_raw))] %>% as.matrix() %>% as.data.frame()
+  cells$Name <- cells$barcode
+  df <- cells %>% column_to_rownames("barcode") %>% dplyr::select(Name,Label) 
+  df$Label <- ifelse(df$Label=="Neg",1,2)
+  df <- rbind(df%>% t() %>% as.data.frame(),dataframe) 
+  print(paste("Writing",targets[i],"matrix in Hypoxia 24h",sep = " "))
+  write.table(df,paste0("~/datas/Hx24h_",targets[i],".nogRNA.csv"),sep = ";",col.names = F,quote = F)
+}
+
+# Save the list of barcode to link the SSAE outputs with the seurat object
+names(list.barcode_Nx) <- paste0(targets,"_Nx")
+names(list.barcode_Hx3h) <- paste0(targets,"_Hx3h")
+names(list.barcode_Hx6h) <- paste0(targets,"_Hx6h")
+names(list.barcode_Hx24h) <- paste0(targets,"_Hx24h")
+list.barcode <- Reduce(append,list(list.barcode_Nx,list.barcode_Hx3h,list.barcode_Hx6h,list.barcode_Hx24h))
+saveRDS(list.barcode,file = "~/list_barcode.rds")
+
+VlnPlot(hashing_Hx24h, features = c("PEX1"),group.by = "target",pt.size = 0,ncol = 1)+NoLegend()+
+  geom_jitter(shape=10,size=0.1, position=position_jitterdodge(seed = 1, dodge.width = 0.9,jitter.width=3)) +labs(y = "EPAS1 expression")
