@@ -635,7 +635,7 @@ res,df2 = select_samples(Thp, df)
 print(res)
 res.to_csv("results_stat/"+file_name.partition('.')[0]+'/SSAE_selection.csv',index =False)
 
-### Update the data matrix with only Np and NNp
+### Update the data matrix with only Np and NNegative
 df_name = df["Name"]
 remove_index =[]
 for i in range(1,data_init.shape[1]):
