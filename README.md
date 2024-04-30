@@ -6,8 +6,7 @@ Detecting subtle transcriptomic perturbations induced by lncRNAs Knock-Down in s
 
 *Marin Truchi, Caroline Lacoux, Cyprien Gille, Julien Fassy, Virginie Magnone, Rafael Lopez-Goncalvez, Cédric Girard-Riboulleau, Iris Manosalva-Pena, Marine Gautier-Isola, Kevin Lebrigand, Pascal Barbry, Salvatore Spicuglia, Georges Vassaux, Roger Rezzonico, Michel Barlaud, Bernard Mari*
 
-bioRxiv 2023.07.11.548494; doi: https://doi.org/10.1101/2023.07.11.548494
-
+Front Bioinform. 2024; doi: 10.3389/fbinf.2024.1340339
 
 The original GitHub repository of the SSAE used in the manuscript is the property of [Michel Barlaud](https://github.com/MichelBarlaud/SAE-Supervised-Autoencoder-Omics/tree/main). The goal of this repository is to gather materials used for i) the preprocessing of CROP-seq data, ii) the detection of transcriptomic perturbation with the SSAE, iii) the figures of the manuscript. 
 
